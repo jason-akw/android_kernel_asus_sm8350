@@ -3055,19 +3055,27 @@ static void dwc3_set_ssphy_orientation_flag(struct dwc3_msm *mdwc)
 	union extcon_property_value val;
 	struct extcon_dev *edev = NULL;
 	unsigned int extcon_id;
+	bool orientation_set = false;
 	int ret;
 
 	dwc3_msm_clear_ssphy_flags(mdwc, PHY_LANE_A | PHY_LANE_B);
 
 	if (mdwc->orientation_override) {
 		mdwc->ss_phy->flags |= mdwc->orientation_override;
+		orientation_set = true;
 	} else if (mdwc->ss_redriver_node) {
 		ret = redriver_orientation_get(mdwc->ss_redriver_node);
-		if (ret == 0)
-			mdwc->ss_phy->flags |= PHY_LANE_A;
-		else
-			mdwc->ss_phy->flags |= PHY_LANE_B;
-	} else {
+		if (ret >= 0) {
+			mdwc->ss_phy->flags |= ret ? PHY_LANE_B : PHY_LANE_A;
+			orientation_set = true;
+		} else {
+			dev_dbg(mdwc->dev,
+				"redriver orientation unavailable: %d, using extcon\n",
+				ret);
+		}
+	}
+
+	if (!orientation_set) {
 		if (mdwc->extcon && mdwc->vbus_active && !mdwc->in_restart) {
 			extcon_id = EXTCON_USB;
 			edev = mdwc->extcon[mdwc->ext_idx].edev;
