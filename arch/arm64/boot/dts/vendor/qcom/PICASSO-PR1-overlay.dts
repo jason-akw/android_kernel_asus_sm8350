@@ -231,6 +231,9 @@
 };
 
 &usb0 {
+	/* Production hardware uses the QMP PHY's Type-C orientation status. */
+	/delete-property/ ssusb_redriver;
+
 	dwc3@a600000 {
 		maximum-speed = "super-speed-plus";
 	};
